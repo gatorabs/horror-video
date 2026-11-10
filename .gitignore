@@ -1,0 +1,13 @@
+# saídas geradas (áudio, vídeo, prévias, blocos de render)
+build/
+build*/
+__pycache__/
+*.mp4
+*.wav
+*.bak
+
+# fontes copiadas do Linux/WSL só para renderizar no Windows (python -m engine.fonts)
+engine/fonts/
+
+# materiais de referência locais
+ref/
