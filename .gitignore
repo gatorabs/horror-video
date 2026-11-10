@@ -11,3 +11,7 @@ engine/fonts/
 
 # materiais de referência locais
 ref/
+
+# youtube: imagens de fundo e miniatura são geradas/locais
+youtube/episodios/*/fundos/
+youtube/episodios/*/capa.jpg

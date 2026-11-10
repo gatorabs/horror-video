@@ -10,3 +10,6 @@ ferramentas/imagens-ia/        render.py, mix.py e tts.py do formato com imagens
 PROMPT_MODELO.md               passo a passo para criar um Reel novo
 ```
 Os MP4 finais ficam só locais (ignorados pelo git).
+
+## Status
+**Em espera.** A automação dos Reels (conector com LLM, como em `youtube/`) fica para quando houver integração com geração de imagem.
