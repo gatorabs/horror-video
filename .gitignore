@@ -11,3 +11,6 @@ engine/fonts/
 
 # materiais de referência locais
 ref/
+
+# episódios do YouTube ficam locais (veja o README)
+episodios/*/

@@ -1,4 +1,4 @@
-# horror-video: vídeos de terror do canal Temos Vagas 🩸
+# horror-video (branch youtube): vídeos longos de terror 🩸
 
 Motor para produzir vídeos narrados de terror (relatos do Reddit, "Você foi contratado" etc.): **texto lido palavra por palavra,
 cutscenes 2D animadas** (só cenários e objetos, sem rostos), **voz ElevenLabs** e render na **placa de vídeo**.
@@ -36,7 +36,6 @@ episodios/NN-nome/script.py   o conteúdo de um episódio novo
 - O `build` roda tts/mix dentro do WSL automaticamente quando está no Windows.
 
 ## O que fica no git
-- `engine/` (motor), `ferramentas/imagens-ia/` (render/mix/tts do formato antigo de Reels com imagens de IA), `PROMPT_MODELO.md`.
-- `episodios/01..03-*-ia/prompts.md`: só os prompts dos 3 episódios já publicados/agendados no Metricool.
-Fora do git: saídas (`build/`, `*.mp4`, `*.wav`), fontes copiadas e `ref/`. Os MP4 finais ficam só locais, dentro de cada pasta de episódio.
-Episódio novo do motor: o `script.py` fica local; para versionar, `git add -f episodios/NN-nome/script.py`.
+Branch `youtube`: só o motor (`engine/`) e o `setup.sh`. Os Reels (imagens de IA + Metricool) vivem na branch `main`, totalmente separados.
+Fora do git: saídas (`build/`, `*.mp4`, `*.wav`), fontes copiadas e `ref/`. O `script.py` de cada episódio fica local;
+para versionar um de propósito: `git add -f episodios/NN-nome/script.py`.
