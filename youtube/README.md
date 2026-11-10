@@ -59,7 +59,7 @@ abrir.bat          abre a interface com dois cliques (Windows)
 motor/gerar.py     link do 4chan -> roteiro (LLM) -> build
 motor/prompt_roteiro.md  instruções do LLM para adaptar o relato
 motor/build.py     orquestra voz, linha do tempo, ffmpeg e o mp4 final
-episodios/NN-nome/ roteiro.txt, prompts_fundos.md, descricao.txt (o que vai para o git)
+episodios/NN-nome/ roteiro.txt, prompts_fundos.md, descricao.txt, vídeo e capa (ficam só no seu computador, fora do git)
 ```
 
 ## Requisitos
