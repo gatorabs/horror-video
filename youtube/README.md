@@ -5,7 +5,7 @@ O parágrafo que está sendo lido fica em destaque, com uma barra vermelha. O v�
 Voz: ElevenLabs (`oJebhZNaPllxk6W0LSBA`). Um drone de ambiente baixinho corre por baixo.
 
 ## Jeito rápido: só o link
-Pela interface: `youtube/abrir.bat` (ou `python youtube/interface.py`), cole o link e clique em PROCESSAR; ela mostra onde o vídeo ficou.
+Pela interface: `youtube/abrir.bat` (ou `python youtube/interface.py`). Ao abrir, ela confere o ambiente (ffmpeg, bibliotecas, Claude Code, chave do ElevenLabs) e ajuda a resolver o que faltar. Depois é só colar o link e clicar em PROCESSAR; ela mostra onde o vídeo ficou.
 Pela linha de comando:
 ```bash
 python youtube/motor/gerar.py "https://boards.4chan.org/x/thread/ID/nome"
@@ -54,6 +54,7 @@ motor/roteiro.py   lê o roteiro.txt
 motor/tts.py       narração ElevenLabs por parágrafo (cache)
 motor/fundos.py    fundo (sua imagem ou névoa procedural), escurecido e com vinheta
 motor/render.py    painel de texto, quadro de título e miniatura
+motor/ambiente.py  detecta Claude Code, chave do ElevenLabs, ffmpeg e bibliotecas
 interface.py       janela: link -> PROCESSAR -> caminho do arquivo
 abrir.bat          abre a interface com dois cliques (Windows)
 motor/gerar.py     link do 4chan -> roteiro (LLM) -> build

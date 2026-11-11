@@ -7,28 +7,19 @@ import urllib.error
 import urllib.request
 import wave
 
+import ambiente
+
 VOZ_PADRAO = "oJebhZNaPllxk6W0LSBA"
 MODELO = "eleven_multilingual_v2"
 AJUSTES = {"stability": 0.5, "similarity_boost": 0.8, "style": 0.2, "use_speaker_boost": True, "speed": 0.95}
 
 
 def chave():
-    k = os.environ.get("ELEVENLABS_API_KEY", "").strip()
-    if k:
-        return k
-    arq = os.path.expanduser("~/.elevenlabs_key")
-    if os.path.exists(arq):
-        return open(arq).read().strip()
-    # a chave fica no WSL (~/.elevenlabs_key); lê de lá sem imprimir
-    try:
-        r = subprocess.run(["wsl", "-d", "Ubuntu", "-e", "bash", "-c", "cat ~/.elevenlabs_key"],
-                           capture_output=True, timeout=60)
-        k = r.stdout.decode(errors="ignore").strip()
-        if k:
-            return k
-    except Exception:
-        pass
-    raise SystemExit("Chave do ElevenLabs não encontrada (ELEVENLABS_API_KEY ou ~/.elevenlabs_key).")
+    k = ambiente.chave_eleven()
+    if not k:
+        raise SystemExit("Chave do ElevenLabs não encontrada. Abra a interface (youtube/abrir.bat) e cole a chave, "
+                         "ou defina ELEVENLABS_API_KEY / crie ~/.elevenlabs_key.")
+    return k
 
 
 def _gerar(texto, anterior, proximo, voz, k):

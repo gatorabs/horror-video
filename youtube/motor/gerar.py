@@ -18,6 +18,8 @@ import sys
 import unicodedata
 import urllib.request
 
+import ambiente
+
 AQUI = os.path.dirname(os.path.abspath(__file__))
 EPISODIOS = os.path.join(os.path.dirname(AQUI), "episodios")
 MODELO_API = "claude-sonnet-5-5"
@@ -68,7 +70,11 @@ def chamar_llm(prompt, provedor):
         with urllib.request.urlopen(req, timeout=900) as r:
             return "".join(b.get("text", "") for b in json.load(r)["content"])
     # padrão: Claude Code em modo headless (usa o login que você já tem, sem chave)
-    r = subprocess.run("claude -p --output-format text", input=prompt.encode("utf-8"), capture_output=True, shell=True, timeout=1500)
+    exe = ambiente.achar_claude()
+    if not exe:
+        raise SystemExit("Claude Code não encontrado. Abra a interface (youtube/abrir.bat) para instalar e entrar, "
+                         "ou use --provedor api com ANTHROPIC_API_KEY.")
+    r = subprocess.run([exe, "-p", "--output-format", "text"], input=prompt.encode("utf-8"), capture_output=True, timeout=1500)
     if r.returncode:
         raise SystemExit("claude -p falhou: " + r.stderr.decode(errors="ignore")[:500])
     return r.stdout.decode("utf-8", errors="ignore")
