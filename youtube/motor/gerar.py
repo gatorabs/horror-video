@@ -3,6 +3,7 @@
     python youtube/motor/gerar.py https://boards.4chan.org/x/thread/43186732/...            # tudo
     python youtube/motor/gerar.py <link> --sem-render                                        # só o roteiro (revise antes de gastar voz)
     python youtube/motor/gerar.py <link> --provedor api                                      # usa a API (ANTHROPIC_API_KEY) em vez do Claude Code
+    python youtube/motor/gerar.py <link> --provedor local --modelo qwen3:14b                 # modelo local (Ollama, LM Studio, llama.cpp)
     python youtube/motor/gerar.py <link> --nome 02-meu-titulo --so-autor                     # nome da pasta; só os posts do autor
 
 Etapas: baixa a thread (API pública do 4chan) -> o LLM adapta para roteiro narrado em PT-BR (roteiro.txt, prompts dos fundos, descrição)
@@ -16,6 +17,7 @@ import re
 import subprocess
 import sys
 import unicodedata
+import urllib.error
 import urllib.request
 
 import ambiente
@@ -23,6 +25,8 @@ import ambiente
 AQUI = os.path.dirname(os.path.abspath(__file__))
 EPISODIOS = os.path.join(os.path.dirname(AQUI), "episodios")
 MODELO_API = "claude-sonnet-5-5"
+URL_LOCAL = os.environ.get("HORROR_LLM_URL", "http://127.0.0.1:11434/v1").rstrip("/")
+MODELO_LOCAL = os.environ.get("HORROR_LLM_MODEL", "qwen3:8b")
 
 
 # ---------- 1. baixar a thread ----------
@@ -57,7 +61,27 @@ def montar_fonte(posts, so_autor):
 
 
 # ---------- 2. LLM ----------
-def chamar_llm(prompt, provedor):
+def chamar_local(prompt, modelo):
+    cab = {"content-type": "application/json"}
+    if os.environ.get("HORROR_LLM_KEY"):
+        cab["authorization"] = "Bearer " + os.environ["HORROR_LLM_KEY"]
+    req = urllib.request.Request(
+        URL_LOCAL + "/chat/completions",
+        data=json.dumps({"model": modelo or MODELO_LOCAL, "stream": False,
+                         "messages": [{"role": "user", "content": prompt}]}).encode(),
+        headers=cab)
+    try:
+        with urllib.request.urlopen(req, timeout=1800) as r:
+            texto = json.load(r)["choices"][0]["message"].get("content") or ""
+    except urllib.error.URLError as e:
+        raise SystemExit(f"Não consegui falar com o modelo local em {URL_LOCAL} ({e}). Abra o Ollama/LM Studio "
+                         "ou defina HORROR_LLM_URL.")
+    return re.sub(r"<think>.*?</think>\s*", "", texto, flags=re.S | re.I)
+
+
+def chamar_llm(prompt, provedor, modelo=None):
+    if provedor == "local":
+        return chamar_local(prompt, modelo)
     if provedor == "api":
         chave = os.environ.get("ANTHROPIC_API_KEY")
         if not chave:
@@ -102,42 +126,84 @@ def proxima_pasta(titulo, nome):
     return os.path.join(EPISODIOS, f"{max(nums, default=0) + 1:02d}-{slug(titulo)}")
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("url")
-    ap.add_argument("--provedor", choices=["claude", "api"], default="claude")
-    ap.add_argument("--nome")
-    ap.add_argument("--so-autor", action="store_true", help="usa só os posts do mesmo autor do primeiro (ignora comentários)")
-    ap.add_argument("--sem-render", action="store_true")
-    ap.add_argument("--cpu", action="store_true")
-    a = ap.parse_args()
+JSON = False
 
-    print("baixando a thread...")
+
+def informar(texto):
+    if JSON:
+        emitir("status", texto)
+    else:
+        print(texto)
+
+
+def emitir(tipo, texto, **dados):
+    print(json.dumps({"type": tipo, "text": texto, "data": dados}, ensure_ascii=False), flush=True)
+
+
+def executar(a):
+    informar("baixando a thread...")
     posts = baixar_thread(a.url)
     assunto, fonte = montar_fonte(posts, a.so_autor)
-    print(f"{len(posts)} posts, {len(fonte)} caracteres de texto")
+    informar(f"{len(posts)} posts, {len(fonte)} caracteres de texto")
 
     modelo = open(os.path.join(AQUI, "prompt_roteiro.md"), encoding="utf-8").read()
     prompt = modelo.replace("{{URL}}", a.url).replace("{{ASSUNTO}}", assunto).replace("{{FONTE}}", fonte)
-    print(f"adaptando com o LLM ({a.provedor})... (pode levar alguns minutos)")
-    resposta = chamar_llm(prompt, a.provedor)
+    informar(f"adaptando com o LLM ({a.provedor})... (pode levar alguns minutos)")
+    resposta = chamar_llm(prompt, a.provedor, a.modelo)
     partes = separar(resposta)
     if "ROTEIRO" not in partes:
         raise SystemExit("O LLM não devolveu o roteiro no formato esperado. Resposta:\n" + resposta[:1500])
 
     cab = re.search(r"^titulo:\s*(.+)$", partes["ROTEIRO"], re.M)
-    pasta = proxima_pasta(cab.group(1) if cab else assunto, a.nome)
+    titulo = cab.group(1).strip() if cab else assunto
+    pasta = proxima_pasta(titulo, a.nome)
     os.makedirs(pasta, exist_ok=True)
     for nome, arq in (("ROTEIRO", "roteiro.txt"), ("FUNDOS", "prompts_fundos.md"), ("DESCRICAO", "descricao.txt")):
         if nome in partes:
             open(os.path.join(pasta, arq), "w", encoding="utf-8", newline="\n").write(partes[nome])
-    print("episódio:", pasta)
+    informar(f"episódio: {pasta}")
 
+    arquivos = {"pasta": pasta, "titulo": titulo, "roteiro": os.path.join(pasta, "roteiro.txt"),
+                "descricao": os.path.join(pasta, "descricao.txt")}
     if a.sem_render:
-        print("Revise o roteiro.txt e rode: python youtube/motor/build.py", os.path.relpath(pasta))
-        return
+        if not JSON:
+            print("Revise o roteiro.txt e rode: python youtube/motor/build.py", os.path.relpath(pasta))
+        return f'O roteiro de "{titulo}" ficou pronto para revisar.', dict(arquivos, path=arquivos["roteiro"])
     cmd = [sys.executable, os.path.join(AQUI, "build.py"), pasta] + (["--cpu"] if a.cpu else [])
-    sys.exit(subprocess.call(cmd))
+    codigo = subprocess.call(cmd)
+    if codigo:
+        raise SystemExit(codigo)
+    video = os.path.join(pasta, os.path.basename(pasta) + ".mp4")
+    return f'O vídeo "{titulo}" ficou pronto.', dict(arquivos, path=video, video=video, capa=os.path.join(pasta, "capa.jpg"))
+
+
+def main():
+    global JSON
+    ap = argparse.ArgumentParser()
+    ap.add_argument("url")
+    ap.add_argument("--provedor", choices=["claude", "api", "local"], default="claude")
+    ap.add_argument("--modelo", help="modelo do --provedor local (padrão: HORROR_LLM_MODEL ou qwen3:8b)")
+    ap.add_argument("--nome")
+    ap.add_argument("--so-autor", action="store_true", help="usa só os posts do mesmo autor do primeiro (ignora comentários)")
+    ap.add_argument("--sem-render", action="store_true")
+    ap.add_argument("--cpu", action="store_true")
+    ap.add_argument("--json", action="store_true", help="progresso e resultado em linhas JSON, para outros apps (ex.: a Friday)")
+    a = ap.parse_args()
+    JSON = a.json
+    if not JSON:
+        executar(a)
+        return
+    try:
+        texto, dados = executar(a)
+    except SystemExit as e:
+        if e.code in (0, None):
+            raise
+        emitir("error", e.code if isinstance(e.code, str) else f"o build saiu com código {e.code}")
+        raise SystemExit(1)
+    except Exception as e:
+        emitir("error", f"{type(e).__name__}: {e}")
+        raise SystemExit(1)
+    emitir("done", texto, **dados)
 
 
 if __name__ == "__main__":

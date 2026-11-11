@@ -12,7 +12,9 @@ python youtube/motor/gerar.py "https://boards.4chan.org/x/thread/ID/nome"
 ```
 Baixa a thread, o LLM adapta para roteiro narrado em PT-BR (com aviso de conteúdo, fundos e descrição) e o motor gera voz e vídeo.
 Por padrão usa o Claude Code em modo headless (`claude -p`, sem chave). Com `--provedor api` usa a API (`ANTHROPIC_API_KEY`).
+Com `--provedor local` usa um modelo rodando no seu computador por qualquer servidor compatível com a OpenAI (Ollama, LM Studio, llama.cpp): endereço em `HORROR_LLM_URL` (padrão `http://127.0.0.1:11434/v1`, o Ollama) e modelo em `--modelo` ou `HORROR_LLM_MODEL` (padrão `qwen3:8b`). Modelos pequenos seguem pior o formato do roteiro; revise antes do render.
 Opções úteis: `--sem-render` (só o roteiro, para revisar antes de gastar voz), `--so-autor` (ignora comentários de outros usuários), `--nome 02-titulo`.
+`--json` troca o andamento por linhas JSON (`status`, e no fim `done` com os caminhos ou `error`), para outros apps dirigirem o motor (a Friday usa assim: você pede o vídeo por voz ou chat e ela avisa quando ficar pronto).
 O estilo do roteiro está em `motor/prompt_roteiro.md`. Revise sempre o roteiro gerado (fidelidade e conteúdo sensível) antes do render.
 
 ## Workflow manual de um vídeo novo
